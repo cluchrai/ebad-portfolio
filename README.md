@@ -122,6 +122,7 @@ The avatar is modelled, rigged and animated in code, so it can be rebuilt any ti
 1. New → Web Service → connect the repo, root directory `server`
 2. Build command `npm install`, start command `npm start`
 3. Add every variable from `.env`, with `CLIENT_ORIGIN` set to the Vercel URL
+4. **Email on Render's free tier:** Render blocks outbound SMTP (ports 25, 465, 587), so Gmail cannot be reached from there. Set `RESEND_API_KEY` instead (sign up at resend.com with the same address as `CONTACT_TO`). The server uses Resend's HTTPS API whenever that key is set, and falls back to SMTP otherwise (fine for local development).
 
 **Frontend on Vercel**
 1. New Project → import the repo, root directory `client` (Vite is detected automatically)
