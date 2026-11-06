@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { on } from '../state.js';
@@ -8,6 +8,7 @@ import { PENDANT_WORLD } from './AvatarRig.jsx';
 /** Golden rings climb the avatar, then a LEVEL UP badge with the newest skill. */
 export function LevelUpFX({ position = [0, 0, 0] }) {
   const [run, setRun] = useState(null); // { skill, id }
+  const narrow = useThree((s) => s.size.width < 820);
   const rings = useRef([]);
   const start = useRef(0);
 
@@ -46,7 +47,7 @@ export function LevelUpFX({ position = [0, 0, 0] }) {
         </mesh>
       ))}
       <Sparkles count={40} scale={[1.4, 2.4, 1.4]} position={[0, 1.1, 0]} size={5} speed={1.4} color="#FFD36E" />
-      <Html key={run.id} position={[0, 2.25, 0]} center distanceFactor={6} zIndexRange={[30, 20]}>
+      <Html key={run.id} position={[0, 2.25, 0]} center distanceFactor={narrow ? undefined : 6} zIndexRange={[30, 20]}>
         <div className="levelup" role="status">
           <p className="levelup-title">LEVEL UP!</p>
           <div className="levelup-bar"><span /></div>

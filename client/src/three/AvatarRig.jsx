@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { emit, on, prefersReducedMotion } from '../state.js';
@@ -34,6 +34,7 @@ const EYE_CLIPS =new Set(['Blink', 'SitDown', 'Sleep', 'WakeUp', 'RubEyes']);
 export default function AvatarRig({ url, onChat, onPointer }) {
   const group = useRef();
   const { scene, animations } = useGLTF(url);
+  const narrow = useThree((s) => s.size.width < 820);
 
   // Blink must only touch the eyes so it can play on top of everything else
   const clips = useMemo(
@@ -285,19 +286,20 @@ export default function AvatarRig({ url, onChat, onPointer }) {
         }}
       />
       {caption && !bubble && (
-        <Html position={[0.7, 1.55, 0]} zIndexRange={[20, 10]}>
-          <div className="caption" role="status" aria-live="polite">{caption}</div>
+        // beside the shoulder on wide screens; centred above the head (and allowed to wrap) on phones
+        <Html position={narrow ? [0, 2.4, 0] : [0.7, 1.55, 0]} center={narrow} zIndexRange={[20, 10]}>
+          <div className={`caption${narrow ? ' is-centered' : ''}`} role="status" aria-live="polite">{caption}</div>
         </Html>
       )}
       {bubble && (
-        <Html position={[0.35, 1.95, 0]} center distanceFactor={6} zIndexRange={[20, 10]}>
+        <Html position={[0.35, 1.95, 0]} center distanceFactor={narrow ? undefined : 6} zIndexRange={[20, 10]}>
           <button type="button" className="speech" onClick={() => { setBubble(false); onChat?.(); }}>
             Ask me anything!
           </button>
         </Html>
       )}
       {zzz && (
-        <Html position={[0.25, 1.15, 0]} center distanceFactor={6} zIndexRange={[20, 10]}>
+        <Html position={[0.25, 1.15, 0]} center distanceFactor={narrow ? undefined : 6} zIndexRange={[20, 10]}>
           <div className="zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></div>
         </Html>
       )}

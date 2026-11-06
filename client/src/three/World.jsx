@@ -314,9 +314,11 @@ const SHOTS = {
   cutscene: { pos: [0, 6.5, 11], look: [0, 0.2, 0] },
   contact: { pos: [-1.9, 1.5, 4.6], look: [-1.95, 1.0, 0.8] },
 };
+// Portrait phones: the camera sits far enough back to fit the island's width, and `shift` slides the picture
+// up (as a fraction of the screen height) so the island lives in the top half while the panels fill the rest.
 const SHOTS_NARROW = {
-  top: { pos: [0, 2.0, 9.5], look: [0, 0.55, 0] },
-  default: { pos: [0, 2.2, 8.5], look: [0, 2.4, 0] },
+  top: { pos: [0, 2.4, 14.5], look: [0, 1.2, 0], shift: 0.13 },
+  default: { pos: [0, 2.2, 13.5], look: [0, 1.25, 0], shift: 0.24 },
 };
 const CUES = { about: 'Wave', skills: 'LevelUp', projects: 'GlassesPush', trophies: 'PendantGlow', contact: 'PeaceJump' };
 
@@ -328,6 +330,8 @@ function CameraRig() {
   const vB = useMemo(() => new THREE.Vector3(), []);
   const lA = useMemo(() => new THREE.Vector3(), []);
   const lB = useMemo(() => new THREE.Vector3(), []);
+  const first = useRef(true);
+  const shift = useRef(0);
 
   useFrame((_, dt) => {
     const narrow = size.width < 820;
@@ -362,6 +366,21 @@ function CameraRig() {
       vA.sub(lA).multiplyScalar(fit).add(lA);
     }
     const lambda = prefersReducedMotion ? 50 : 2.2;
+    // start on the right shot for this screen instead of flying in from the desktop one
+    if (first.current) {
+      first.current = false;
+      camera.position.copy(vA);
+      look.current.copy(lA);
+      shift.current = narrow ? THREE.MathUtils.lerp(a.shift, b.shift, k) : 0;
+    }
+    // slide the picture up on phones (see SHOTS_NARROW); plain camera on wider screens
+    const wantShift = narrow ? THREE.MathUtils.lerp(a.shift, b.shift, k) : 0;
+    shift.current = THREE.MathUtils.damp(shift.current, wantShift, lambda, dt);
+    if (shift.current > 0.0005) {
+      camera.setViewOffset(size.width, size.height, 0, size.height * shift.current, size.width, size.height);
+    } else if (camera.view?.enabled) {
+      camera.clearViewOffset();
+    }
     camera.position.x = THREE.MathUtils.damp(camera.position.x, vA.x, lambda, dt);
     camera.position.y = THREE.MathUtils.damp(camera.position.y, vA.y, lambda, dt);
     camera.position.z = THREE.MathUtils.damp(camera.position.z, vA.z, lambda, dt);
@@ -477,7 +496,12 @@ export default function World({ onChat }) {
     window.addEventListener('pointermove', move, { passive: true });
     return () => window.removeEventListener('pointermove', move);
   }, []);
-  const [dpr, setDpr] = useState(1.75);
+  // Sharpness: use the screen's real pixel ratio (capped), and when the frame rate dips step down gently but never
+  // below a floor. Dropping to 1x made everything look soft on phones, and bouncing up and down made it flicker.
+  const native = window.devicePixelRatio || 1;
+  const maxDpr = Math.min(native, window.innerWidth < 820 ? 2 : 1.75);
+  const minDpr = Math.min(native, 1.25);
+  const [dpr, setDpr] = useState(maxDpr);
   return (
     <div className="world" aria-hidden="false">
       <Canvas
@@ -487,7 +511,7 @@ export default function World({ onChat }) {
         camera={{ position: SHOTS.top.pos, fov: 40, near: 0.1, far: 80 }}
         aria-label="3D floating island with Ebad's avatar. Click the avatar to say hi."
       >
-        <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.75)} />
+        <PerformanceMonitor onDecline={() => setDpr((d) => Math.max(minDpr, d - 0.25))} />
         <Scene onChat={onChat} pointer={pointer} />
       </Canvas>
     </div>

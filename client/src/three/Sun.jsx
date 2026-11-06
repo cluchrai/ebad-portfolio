@@ -99,12 +99,19 @@ export default function Sun() {
     drift.current = THREE.MathUtils.damp(drift.current, p, prefersReducedMotion ? 50 : 2, dt);
     const d = drift.current;
 
-    // base spot: ~78% right, ~56% up, sliding toward the centre and lower as you scroll
+    // base spot: ~78% right, ~56% up, sliding toward the centre and lower as you scroll.
+    // On phones it is smaller and tucked into the top-right corner of the island view.
+    const narrow = size.width < 820;
     const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * DISTANCE;
     const halfW = halfH * (size.width / size.height);
     const bob = prefersReducedMotion ? 0 : Math.sin(clock.elapsedTime * 0.4) * 0.12;
-    const x = halfW * (0.78 - 0.2 * d);
-    const y = halfH * (0.56 - 0.2 * d) + bob + Math.sin(d * Math.PI) * halfH * 0.05;
+    // the phone camera slides the picture up (view offset); counter it so the sun lands where we mean
+    const viewShift = camera.view?.enabled ? (2 * camera.view.offsetY) / camera.view.fullHeight : 0;
+    const x = halfW * (narrow ? 0.64 - 0.1 * d : 0.78 - 0.2 * d);
+    const y = halfH * ((narrow ? 0.5 : 0.56) - 0.2 * d - viewShift) + bob + Math.sin(d * Math.PI) * halfH * 0.05;
+    const bodyScale = narrow ? 0.42 : 1;
+    sunRef.current.scale.setScalar(bodyScale);
+    moonRef.current.scale.setScalar(bodyScale);
 
     const n = sky.night;
     const sunUp = ease(THREE.MathUtils.clamp(1 - n * 1.6, 0, 1)); // sun sets quickly, moon rises after

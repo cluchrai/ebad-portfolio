@@ -46,7 +46,22 @@ export const skillGroups = [
 ];
 
 // category: 'web' | 'game' | 'xr'   image: null shows a placeholder thumbnail
+// Shown in this order. The award-winning game goes first.
 export const projects = [
+  {
+    id: 'two-lights',
+    title: 'Two Lights One Escape',
+    subtitle: 'Co-op puzzle platformer',
+    category: 'game',
+    description:
+      'A 3D split-reality co-op puzzle platformer for two local players, who coordinate across mirrored rooms to escape together.',
+    role: 'Level design for 2 levels, environment art across most levels',
+    party: 'Team of 3',
+    reward: '1st place, GameCon',
+    tags: ['Unity 3D', 'Local co-op'],
+    image: null,
+    links: [],
+  },
   {
     id: 'rfq-saas',
     title: 'RFQ-to-Invoice SaaS',
@@ -96,20 +111,6 @@ export const projects = [
     role: 'Full ocean exterior environment design and implementation',
     party: 'Team of 4',
     tags: ['Meta Quest 3', 'Unity VR'],
-    image: null,
-    links: [],
-  },
-  {
-    id: 'two-lights',
-    title: 'Two Lights One Escape',
-    subtitle: 'Co-op puzzle platformer',
-    category: 'game',
-    description:
-      'A 3D split-reality co-op puzzle platformer for two local players, who coordinate across mirrored rooms to escape together.',
-    role: 'Level design for 2 levels, environment art across most levels',
-    party: 'Team of 3',
-    reward: '1st place, GameCon',
-    tags: ['Unity 3D', 'Local co-op'],
     image: null,
     links: [],
   },

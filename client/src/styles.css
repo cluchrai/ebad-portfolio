@@ -107,7 +107,9 @@ button, input, textarea { font: inherit; color: inherit; }
 :root[data-theme='night'] .sky-night { opacity: 1; }
 body { transition: background-color 0.9s ease, color 0.4s ease; }
 :root[data-theme='night'] .hero-word { opacity: 0.35; filter: saturate(0.8); transition: opacity 0.9s ease; }
-.world { position: fixed; inset: 0; z-index: 1; }
+/* Large-viewport height: on phones the canvas must not resize each time the address bar shows or hides,
+   or the whole scene jumps while you scroll. */
+.world { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; z-index: 1; }
 .world-loading { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; font-family: var(--font-display); color: var(--ink-2); }
 
 .hero-word {
@@ -418,6 +420,7 @@ main a, main button, main input, main textarea, main label, .panel { pointer-eve
   background: var(--glass-strong); color: var(--ink); border: 1px solid var(--edge); box-shadow: var(--shadow);
   animation: pop 0.3s cubic-bezier(.2,.9,.3,1.4) both;
 }
+.caption.is-centered { transform: none; white-space: normal; text-align: center; width: max-content; max-width: 210px; font-size: 13px; }
 .zzz { display: flex; gap: 2px; font-family: var(--font-display); font-weight: 800; color: var(--violet); }
 .zzz span { animation: float-z 2.4s ease-in-out infinite; }
 .zzz span:nth-child(1) { font-size: 14px; }

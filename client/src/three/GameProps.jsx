@@ -219,7 +219,9 @@ export default function GameProps() {
   const root = useRef();
   useFrame((_, dt) => {
     if (!root.current) return;
-    const show = window.scrollY < window.innerHeight * 0.55 ? 1 : 0;
+    // a touch smaller on phones so they stay clear of the name and the intro panel
+    const full = window.innerWidth < 820 ? 0.85 : 1;
+    const show = window.scrollY < window.innerHeight * 0.55 ? full : 0;
     const s = THREE.MathUtils.damp(root.current.scale.x, show, 4, dt);
     root.current.scale.setScalar(Math.max(s, 0.0001));
     root.current.visible = s > 0.01;
