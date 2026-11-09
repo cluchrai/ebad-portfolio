@@ -74,7 +74,7 @@ export default function QuestLog() {
                   <dl className="quest-meta">
                     {p.party && (<div><dt>Party</dt><dd>{p.party}</dd></div>)}
                     <div><dt>My part</dt><dd>{p.role}</dd></div>
-                    {p.reward && (<div className="is-reward"><dt>Reward</dt><dd>{p.reward}</dd></div>)}
+                    {p.reward && (<div className="is-reward"><dt>{p.rewardLabel || 'Reward'}</dt><dd>{p.reward}</dd></div>)}
                   </dl>
                   <ul className="chips">
                     {p.tags.map((t) => <li key={t}>{t}</li>)}

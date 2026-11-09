@@ -17,7 +17,7 @@ export function CharacterSheet() {
     ['Subclass', 'Web & backend developer'],
     ['Origin', profile.location],
     ['Guild', 'NED University, BCIT'],
-    ['Level', 'Year 3 of 4'],
+    ['Level', 'Year 4 of 4'],
     ['Specialty', 'Gaming & animation'],
   ];
   return (
