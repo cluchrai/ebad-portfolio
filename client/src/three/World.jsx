@@ -94,6 +94,13 @@ function Platform() {
 }
 
 function BlossomTree({ position, scale = 1 }) {
+  const sway = useRef();
+  useFrame(({ clock }) => {
+    if (!sway.current || prefersReducedMotion) return;
+    const t = clock.elapsedTime + position[0] * 2;
+    sway.current.rotation.z = Math.sin(t * 0.8) * 0.02;
+    sway.current.rotation.x = Math.cos(t * 0.6) * 0.012;
+  });
   const blobs = [
     [0, 2.05, 0, 0.75, '#FFB3D1'],
     [-0.55, 1.8, 0.2, 0.55, '#FF8EBF'],
@@ -104,6 +111,7 @@ function BlossomTree({ position, scale = 1 }) {
   ];
   return (
     <group position={position} scale={scale}>
+     <group ref={sway}>
       <mesh position={[0, 0.8, 0]} rotation={[0, 0, 0.08]} castShadow>
         <cylinderGeometry args={[0.09, 0.16, 1.6, 10]} />
         <meshStandardMaterial color="#8B5E4A" roughness={0.9} />
@@ -118,6 +126,7 @@ function BlossomTree({ position, scale = 1 }) {
           <meshStandardMaterial color={c} roughness={0.55} flatShading />
         </mesh>
       ))}
+     </group>
     </group>
   );
 }
@@ -133,6 +142,7 @@ function Pond() {
         <ringGeometry args={[0.72, 0.86, 40]} />
         <meshStandardMaterial color="#EDE4D8" roughness={0.9} />
       </mesh>
+      <Boat />
       {/* stream spilling over the edge */}
       <mesh position={[1.25, -1.2, 0.2]}>
         <boxGeometry args={[0.28, 2.6, 0.06]} />
@@ -302,6 +312,220 @@ function MiniIsland({ position, scale }) {
   );
 }
 
+// ---------------------------------------------------------------- living environment
+// Small ambient motion so the island always feels alive. Everything is animated in code and
+// holds still when the visitor prefers reduced motion.
+function Windmill({ position, scale = 1 }) {
+  const blades = useRef();
+  useFrame((_, dt) => {
+    if (blades.current && !prefersReducedMotion) blades.current.rotation.z -= dt * 0.9;
+  });
+  return (
+    <group position={position} scale={scale} rotation={[0, -0.35, 0]}>
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <cylinderGeometry args={[0.17, 0.27, 1.0, 10]} />
+        <meshStandardMaterial color="#F2EADF" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 1.16, 0]} castShadow>
+        <coneGeometry args={[0.25, 0.36, 10]} />
+        <meshStandardMaterial color="#D9677F" roughness={0.6} flatShading />
+      </mesh>
+      <mesh position={[0, 0.17, 0.25]}>
+        <boxGeometry args={[0.13, 0.26, 0.03]} />
+        <meshStandardMaterial color="#8B5E4A" />
+      </mesh>
+      <group position={[0, 0.95, 0.2]}>
+        <mesh position={[0, 0, 0.02]}>
+          <sphereGeometry args={[0.06, 12, 12]} />
+          <meshStandardMaterial color="#8B5E4A" />
+        </mesh>
+        <group ref={blades} position={[0, 0, 0.06]}>
+          {[0, 1, 2, 3].map((i) => (
+            <group key={i} rotation={[0, 0, (i * Math.PI) / 2]}>
+              <mesh position={[0, 0.3, 0]} castShadow>
+                <boxGeometry args={[0.1, 0.56, 0.015]} />
+                <meshStandardMaterial color="#FFFFFF" roughness={0.6} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      </group>
+    </group>
+  );
+}
+
+function Boat() {
+  const ref = useRef();
+  const sailGeo = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(0, 0);
+    s.lineTo(0.16, 0);
+    s.lineTo(0, 0.3);
+    s.closePath();
+    return new THREE.ShapeGeometry(s);
+  }, []);
+  useFrame(({ clock }) => {
+    if (!ref.current || prefersReducedMotion) return;
+    const t = clock.elapsedTime * 0.35;
+    ref.current.position.set(Math.cos(t) * 0.26, 0.03 + Math.sin(clock.elapsedTime * 1.6) * 0.008, Math.sin(t) * 0.26);
+    ref.current.rotation.set(Math.sin(clock.elapsedTime * 1.3) * 0.05, -t, Math.sin(clock.elapsedTime * 1.1) * 0.06);
+  });
+  return (
+    <group ref={ref} position={[0.26, 0.03, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.32, 0.06, 0.12]} />
+        <meshStandardMaterial color="#C9A98B" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.17, 0]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.3, 6]} />
+        <meshStandardMaterial color="#8B5E4A" />
+      </mesh>
+      <mesh position={[0.01, 0.05, 0]} geometry={sailGeo}>
+        <meshStandardMaterial color="#FFFFFF" side={THREE.DoubleSide} roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+function Kite() {
+  const ref = useRef();
+  const tail = useRef([]);
+  const geo = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(0, 0.42);
+    s.lineTo(0.26, 0.04);
+    s.lineTo(0, -0.46);
+    s.lineTo(-0.26, 0.04);
+    s.closePath();
+    return new THREE.ShapeGeometry(s);
+  }, []);
+  useFrame(({ clock }) => {
+    if (!ref.current || prefersReducedMotion) return;
+    const t = clock.elapsedTime;
+    ref.current.position.set(-2.7 + Math.sin(t * 0.33) * 0.8, 3.5 + Math.sin(t * 0.5) * 0.3, -2.4 + Math.cos(t * 0.3) * 0.5);
+    ref.current.rotation.z = Math.sin(t * 0.7) * 0.25 - 0.1;
+    tail.current.forEach((m, i) => m && (m.position.x = Math.sin(t * 2.4 - i * 0.9) * 0.05 * (i + 1)));
+  });
+  return (
+    <group ref={ref} position={[-2.7, 3.5, -2.4]} scale={0.8}>
+      <mesh geometry={geo}>
+        <meshBasicMaterial color="#FF6FAE" side={THREE.DoubleSide} toneMapped={false} />
+      </mesh>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <mesh key={i} ref={(el) => (tail.current[i] = el)} position={[0, -0.58 - i * 0.17, 0]}>
+          <boxGeometry args={[0.1, 0.05, 0.01]} />
+          <meshBasicMaterial color={i % 2 ? '#6C4DFF' : '#FFC24B'} toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// short grass blades that lean in a light breeze
+function GrassTufts() {
+  const mesh = useRef();
+  const items = useMemo(() => {
+    const out = [];
+    for (let i = 0; i < 46; i++) {
+      const a = i * 2.399 + 0.7;
+      const r = 0.7 + (((i * 53) % 100) / 100) * 2.35;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (Math.hypot(x - AVATAR_POS[0], z - AVATAR_POS[2]) < 0.95) continue;
+      if (Math.hypot(x - 1.75, z + 0.7) < 1.0) continue;
+      out.push([x, z, a]);
+    }
+    return out;
+  }, []);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const place = (t) => {
+    const m = mesh.current;
+    if (!m) return;
+    items.forEach(([x, z, a], i) => {
+      dummy.position.set(x, 0.18, z);
+      dummy.rotation.set(Math.sin(t * 1.4 + a) * 0.16, a, Math.cos(t * 1.1 + a * 2) * 0.16);
+      dummy.updateMatrix();
+      m.setMatrixAt(i, dummy.matrix);
+    });
+    m.instanceMatrix.needsUpdate = true;
+  };
+  useLayoutEffect(() => place(0), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useFrame(({ clock }) => {
+    if (!prefersReducedMotion) place(clock.elapsedTime);
+  });
+  return (
+    <instancedMesh ref={mesh} args={[undefined, undefined, items.length]}>
+      <coneGeometry args={[0.035, 0.22, 5]} />
+      <meshStandardMaterial color="#5FBF7A" roughness={0.8} />
+    </instancedMesh>
+  );
+}
+
+function makeGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.45)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+
+// glowing specks that drift around the island and fade in when the sun goes down
+function Fireflies({ count = 30 }) {
+  const points = useRef();
+  const { base, geo, tex } = useMemo(() => {
+    const base = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const a = i * 2.399, r = 0.6 + (((i * 41) % 100) / 100) * 2.6;
+      base[i * 3] = Math.cos(a) * r;
+      base[i * 3 + 1] = 0.5 + (((i * 29) % 100) / 100) * 1.8;
+      base[i * 3 + 2] = Math.sin(a) * r;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(base), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+    return { base, geo, tex: makeGlowTexture() };
+  }, [count]);
+  useFrame(({ clock }) => {
+    const p = points.current;
+    if (!p) return;
+    p.visible = sky.night > 0.02;
+    if (!p.visible) return;
+    const t = prefersReducedMotion ? 0 : clock.elapsedTime;
+    const pos = geo.attributes.position, col = geo.attributes.color;
+    for (let i = 0; i < count; i++) {
+      pos.setXYZ(
+        i,
+        base[i * 3] + Math.sin(t * 0.5 + i) * 0.28,
+        base[i * 3 + 1] + Math.sin(t * 0.7 + i * 1.3) * 0.2,
+        base[i * 3 + 2] + Math.cos(t * 0.45 + i * 0.7) * 0.28
+      );
+      const b = (0.55 + 0.45 * Math.sin(t * 1.3 + i * 2.1)) * sky.night;
+      col.setXYZ(i, b, b, b);
+    }
+    pos.needsUpdate = true;
+    col.needsUpdate = true;
+  });
+  return (
+    <points ref={points} geometry={geo} visible={false} frustumCulled={false}>
+      <pointsMaterial
+        map={tex}
+        color="#FFE98A"
+        vertexColors
+        size={0.42}
+        sizeAttenuation
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
+  );
+}
+
 // ---------------------------------------------------------------- camera
 // One shot per section. Desktop shots keep the avatar on the right; content sits on the left.
 const SHOTS = {
@@ -458,6 +682,9 @@ function Scene({ onChat, pointer }) {
         <Lantern position={[1.15, 0.18, 1.85]} />
         <Mailbox position={[-2.1, 0.18, 0.95]} />
         <Flowers />
+        <GrassTufts />
+        <Windmill position={[0.9, 0.18, -2.1]} scale={0.8} />
+        <Fireflies />
         <Suspense fallback={null}>
           <group position={AVATAR_POS}>
             {avatar.url && <AvatarRig url={avatar.url} onChat={onChat} onPointer={pointer} />}
@@ -469,6 +696,7 @@ function Scene({ onChat, pointer }) {
       </group>
 
       <Crystals />
+      <Kite />
       <Sun />
       <NightSky />
       <GameProps />

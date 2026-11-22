@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { projects, projectFilters } from '../data/portfolio.js';
+import { emit } from '../state.js';
 
 const categoryLabel = { web: 'Web & backend', game: 'Game', xr: 'VR / XR' };
 
@@ -61,7 +62,12 @@ export default function QuestLog() {
         ) : (
           <div className="quests">
             {visible.map((p) => (
-              <article key={p.id} className="quest">
+              <article
+                key={p.id}
+                className="quest"
+                onPointerEnter={(e) => e.pointerType === 'mouse' && emit('card:hover', true)}
+                onPointerLeave={(e) => e.pointerType === 'mouse' && emit('card:hover', false)}
+              >
                 <div className="quest-thumb">
                   <Thumb project={p} />
                   <span className="quest-cat">{categoryLabel[p.category]}</span>

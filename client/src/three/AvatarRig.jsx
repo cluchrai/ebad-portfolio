@@ -234,24 +234,54 @@ export default function AvatarRig({ url, onChat, onPointer }) {
   // ---------- per frame: head follows the cursor, pendant glow, FX anchor ----------
   const tmpQ = useMemo(() => new THREE.Quaternion(), []);
   const tmpE = useMemo(() => new THREE.Euler(), []);
-  const headBase = useMemo(() => new THREE.Quaternion(), []);
-  const headApplied = useMemo(() => new THREE.Quaternion(0, 0, 0, 0), []);
+  const headSt = useMemo(() => ({ base: new THREE.Quaternion(), applied: new THREE.Quaternion(0, 0, 0, 0) }), []);
+  const spineSt = useMemo(() => ({ base: new THREE.Quaternion(), applied: new THREE.Quaternion(0, 0, 0, 0) }), []);
+  const spine = useRef(null);
   const look = useRef({ x: 0, y: 0 });
+  // body reactions: torso turns toward the page content, leans with scroll speed, glances at hovered cards
+  const react = useRef({ turn: 0, lean: 0, glance: 0, lastY: typeof window !== 'undefined' ? window.scrollY : 0, vel: 0, section: 'top' });
+  useEffect(() => {
+    spine.current = scene.getObjectByName('spine');
+    const offSection = on('section', (id) => { react.current.section = id; });
+    const offHover = on('card:hover', (on_) => { state.current.hover = !!on_; });
+    return () => { offSection(); offHover(); };
+  }, [scene]);
+  // If the mixer did not rewrite the bone this frame (clip has no track for it), our last offset is still on it:
+  // restore the base first so it never accumulates.
+  const applyOffset = (node, st, euler) => {
+    const q = node.quaternion;
+    if (q.equals(st.applied)) q.copy(st.base);
+    else st.base.copy(q);
+    tmpQ.setFromEuler(euler);
+    q.multiply(tmpQ);
+    st.applied.copy(q);
+  };
   useFrame((_, dt) => {
     const s = state.current;
+    const r = react.current;
     const p = onPointer?.current || { x: 0, y: 0 };
     look.current.x = THREE.MathUtils.damp(look.current.x, s.sleeping ? 0 : p.x, 4, dt);
     look.current.y = THREE.MathUtils.damp(look.current.y, s.sleeping ? 0 : p.y, 4, dt);
+
+    // scroll speed (px/s) -> lean, smoothed so a fast flick doesn't snap him
+    const y = window.scrollY;
+    const v = dt > 0 ? (y - r.lastY) / dt : 0;
+    r.lastY = y;
+    r.vel = THREE.MathUtils.damp(r.vel, THREE.MathUtils.clamp(v / 2500, -1, 1), 6, dt);
+    const awake = !s.sleeping && !prefersReducedMotion;
+    // on wide screens the content sits to his left, so he faces it (except on the hero and video shots)
+    const faceContent = !narrow && r.section !== 'top' && r.section !== 'cutscene' ? -0.22 : 0;
+    r.turn = THREE.MathUtils.damp(r.turn, awake ? faceContent + p.x * 0.18 - (s.hover ? 0.18 : 0) : 0, 3, dt);
+    r.lean = THREE.MathUtils.damp(r.lean, awake ? r.vel * 0.13 : 0, 5, dt);
+    r.glance = THREE.MathUtils.damp(r.glance, awake && s.hover ? 1 : 0, 5, dt);
+
     if (head.current && !prefersReducedMotion) {
-      // If the mixer did not rewrite the head this frame (clip has no head track),
-      // our last offset is still on it: restore the base first so it never accumulates.
-      const hq = head.current.quaternion;
-      if (hq.equals(headApplied)) hq.copy(headBase);
-      else headBase.copy(hq);
-      tmpE.set(look.current.y * 0.18, look.current.x * 0.35, 0, 'YXZ');
-      tmpQ.setFromEuler(tmpE);
-      hq.multiply(tmpQ);
-      headApplied.copy(hq);
+      tmpE.set(look.current.y * 0.18 + r.glance * (narrow ? 0.2 : 0.08), look.current.x * 0.35 - r.glance * (narrow ? 0 : 0.2), 0, 'YXZ');
+      applyOffset(head.current, headSt, tmpE);
+    }
+    if (spine.current && !prefersReducedMotion) {
+      tmpE.set(r.lean, r.turn, 0, 'YXZ');
+      applyOffset(spine.current, spineSt, tmpE);
     }
     if (pendantMat.current) {
       pendantGlow.current = Math.max(0, pendantGlow.current - dt * 0.4);
