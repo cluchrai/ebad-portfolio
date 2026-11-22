@@ -2,6 +2,38 @@ import { useEffect, useRef, useState } from 'react';
 import { profile } from '../data/portfolio.js';
 
 const API = import.meta.env.VITE_API_URL || '';
+
+// The model answers in light markdown (**bold**, *italic*, "- " lists). Render that as real elements, not raw
+// asterisks. Built from React elements only, so nothing from the model is ever injected as HTML.
+function inline(line) {
+  return line.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) return <em key={i}>{part.slice(1, -1)}</em>;
+    return part;
+  });
+}
+
+function FormattedText({ text }) {
+  const blocks = [];
+  let list = null;
+  text.split('\n').forEach((raw, i) => {
+    const bullet = raw.match(/^\s*[-*•]\s+(.*)$/);
+    if (bullet) {
+      if (!list) blocks.push((list = { type: 'ul', items: [], key: i }));
+      list.items.push(bullet[1]);
+    } else {
+      list = null;
+      if (raw.trim()) blocks.push({ type: 'p', text: raw, key: i });
+    }
+  });
+  return blocks.map((b) =>
+    b.type === 'ul' ? (
+      <ul key={b.key}>{b.items.map((it, j) => <li key={j}>{inline(it)}</li>)}</ul>
+    ) : (
+      <p key={b.key}>{inline(b.text)}</p>
+    )
+  );
+}
 const SUGGESTIONS = [
   'What games has Ebad worked on?',
   'Tell me about his SaaS project',
@@ -116,7 +148,7 @@ export default function ChatWidget({ open, onOpenChange }) {
         <div className="chat-list" ref={listRef} aria-live="polite">
           {messages.map((m, i) => (
             <div key={i} className={`msg is-${m.role}${m.error ? ' is-error' : ''}`}>
-              <p>{m.text}</p>
+              {m.role === 'assistant' && !m.error ? <FormattedText text={m.text} /> : <p>{m.text}</p>}
               {m.sources?.length > 0 && (
                 <div className="msg-sources">
                   <span>Sources:</span>

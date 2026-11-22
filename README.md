@@ -108,6 +108,7 @@ The avatar is modelled, rigged and animated in code, so it can be rebuilt any ti
 
 - **Blender file:** open Blender → Scripting tab → open `blender/build_avatar.py` → Run Script. It builds the mesh, armature, materials and 11 actions, then saves `~/ebad_avatar/ebad_avatar.blend` and `~/ebad_avatar/avatar.glb`.
 - **Without Blender:** `python3 blender/export_glb.py` (needs numpy) writes `client/public/models/avatar.glb` directly. This is the file the site ships with.
+- **Source file in this repo:** [`blender/ebad_avatar.blend`](blender/ebad_avatar.blend) is the generated Blender project (1 armature with 23 bones, 24 avatar meshes, 29 materials, 11 actions). It can also be built headless: `blender -b --python blender/build_avatar.py`. A render from it is in `docs/screenshots/module2-blender-avatar.png`.
 - Animations: Idle, Blink, Wave, GlassesPush, PendantGlow, LevelUp, PeaceJump, SitDown, Sleep, WakeUp, RubEyes.
 - The newest skills shown by the LEVEL UP animation come from `recentSkills` in `src/data/portfolio.js`.
 
@@ -137,7 +138,26 @@ The avatar is modelled, rigged and animated in code, so it can be rebuilt any ti
 - Multilingual chatbot (English, Urdu, Roman Urdu)
 - Chatbot source citations linking to portfolio sections
 - Project filtering and search
+- Dark and light themes: a toggle in the top bar turns the sun into a moon and the sky into a starry night with shooting stars; the choice is remembered
+- Website analytics: cookie-free page-view analytics through Vercel Web Analytics (enable it under the project's Analytics tab on Vercel)
 - Accessibility: skip link, keyboard focus styles, ARIA labels, reduced-motion support (camera cuts instead of flying, no idle moves)
+
+## Screenshots
+
+All taken from the built site (`docs/screenshots/`):
+
+| File | Shows |
+|---|---|
+| `01-home-day.jpg`, `02-home-night.jpg` | Module 1: home page in day and night mode |
+| `03-about-character-sheet.jpg` | Module 1: About me |
+| `04-skills-inventory.jpg` | Module 1: skills and technologies |
+| `05-projects-gallery.jpg` | Module 1: projects gallery with filters and search |
+| `06-education-experience.jpg`, `07-trophies.jpg` | Module 1: education, experience and achievements |
+| `08-video-section.jpg` | Module 3: the promo video section (video still to be added) |
+| `09-contact-form.jpg` | Module 5: contact form |
+| `10-chatbot.jpg` | Module 4: RAG chatbot answering with source citations |
+| `11-mobile-home.jpg`, `12-mobile-projects.jpg` | Module 1: responsive mobile layout |
+| `module2-blender-avatar.png` | Module 2: avatar rendered from the `.blend` |
 
 ## Author
 
