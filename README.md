@@ -2,9 +2,9 @@
 
 Semester project: an interactive 3D web portfolio with a Blender avatar, an After Effects promo video, a RAG chatbot and a working contact form.
 
-The whole site plays out on one sunlit floating island built in Three.js. The 3D world stays fixed behind the page: as you scroll, the camera flies to a new shot for every section and the avatar reacts (waves at the character sheet, levels up at the inventory, pushes his glasses at the quest log, powers up his star pendant at the trophies). Sections are styled like a game: character sheet, inventory, quest log, save points, trophies, cutscene.
+The whole site plays out on one sunlit floating island built in Three.js. The 3D world stays fixed behind the page: as you scroll, the camera flies to a new shot for every section and the avatar walks to a new spot and reacts (waves at the character sheet, juggles blocks at the inventory, plays a game at the quest log, lifts a trophy at the trophies, types a reply at the contact form). Sections are styled like a game: character sheet, inventory, quest log, save points, trophies, cutscene.
 
-Avatar behaviour: idle breathing and random blinks; every 9–15 seconds a random move (glasses push, pendant power-up, level up showing the newest skill); click him for a peace-sign jump and a speech bubble that opens the chat; leave the page alone for 30 seconds and he sits down and falls asleep, then wakes up startled when you move.
+Avatar behaviour: idle breathing and random blinks; every 9–15 seconds a random move (glasses push, pendant power-up, level up showing the newest skill); his torso turns toward the page content, leans with scroll speed and glances at project cards you hover; click him for a peace-sign jump and a speech bubble that opens the chat; leave the page alone for 30 seconds and he sits down and falls asleep, then wakes up startled when you move.
 
 ## Tech stack
 
@@ -108,8 +108,8 @@ The avatar is modelled, rigged and animated in code, so it can be rebuilt any ti
 
 - **Blender file:** open Blender → Scripting tab → open `blender/build_avatar.py` → Run Script. It builds the mesh, armature, materials and 11 actions, then saves `~/ebad_avatar/ebad_avatar.blend` and `~/ebad_avatar/avatar.glb`.
 - **Without Blender:** `python3 blender/export_glb.py` (needs numpy) writes `client/public/models/avatar.glb` directly. This is the file the site ships with.
-- **Source file in this repo:** [`blender/ebad_avatar.blend`](blender/ebad_avatar.blend) is the generated Blender project (1 armature with 23 bones, 24 avatar meshes, 29 materials, 11 actions). It can also be built headless: `blender -b --python blender/build_avatar.py`. A render from it is in `docs/screenshots/module2-blender-avatar.png`.
-- Animations: Idle, Blink, Wave, GlassesPush, PendantGlow, LevelUp, PeaceJump, SitDown, Sleep, WakeUp, RubEyes.
+- **Source file in this repo:** [`blender/ebad_avatar.blend`](blender/ebad_avatar.blend) is the generated Blender project (1 armature with 23 bones, 24 avatar meshes, 29 materials, 16 actions). It can also be built headless: `blender -b --python blender/build_avatar.py`. A render from it is in `docs/screenshots/module2-blender-avatar.png`.
+- Animations: Idle, Blink, Wave, GlassesPush, PendantGlow, LevelUp, PeaceJump, SitDown, Sleep, WakeUp, RubEyes, Walk, PlayGame, Juggle, LiftTrophy, Type.
 - The newest skills shown by the LEVEL UP animation come from `recentSkills` in `src/data/portfolio.js`.
 
 ## Adding the video and thumbnails

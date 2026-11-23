@@ -2,7 +2,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, Environment, Float, Lightformer, PerformanceMonitor, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
-import AvatarRig from './AvatarRig.jsx';
+import AvatarRig, { ACTOR } from './AvatarRig.jsx';
 import { LevelUpFX, PendantFX, Petals } from './Effects.jsx';
 import GameProps from './GameProps.jsx';
 import Sun from './Sun.jsx';
@@ -11,6 +11,15 @@ import { avatar } from '../data/portfolio.js';
 import { emit, SECTIONS, prefersReducedMotion, sky } from '../state.js';
 
 const AVATAR_POS = [0, 0.2, 0.45];
+
+// keeps its children under the avatar as he walks around the island
+function FollowActor({ base, children }) {
+  const ref = useRef();
+  useFrame(() => {
+    if (ref.current) ref.current.position.set(base[0] + ACTOR.x, base[1], base[2] + ACTOR.z);
+  });
+  return <group ref={ref} position={base}>{children}</group>;
+}
 
 // ---------------------------------------------------------------- materials
 function Iridescent(props) {
@@ -534,7 +543,7 @@ const SHOTS = {
   skills: { pos: [1.4, 1.5, 3.9], look: [-0.7, 1.15, 0.2] },
   projects: { pos: [3.2, 4.6, 10.5], look: [-3.2, 0.7, 0] },
   journey: { pos: [-3.0, 2.3, 6.8], look: [-2.1, 1.0, 0.6] },
-  trophies: { pos: [0.6, 1.4, 3.4], look: [-0.75, 1.3, 0.3] },
+  trophies: { pos: [0.6, 1.7, 4.5], look: [-0.75, 1.55, 0.3] },
   cutscene: { pos: [0, 6.5, 11], look: [0, 0.2, 0] },
   contact: { pos: [-1.9, 1.5, 4.6], look: [-1.95, 1.0, 0.8] },
 };
@@ -544,7 +553,9 @@ const SHOTS_NARROW = {
   top: { pos: [0, 2.4, 14.5], look: [0, 1.2, 0], shift: 0.13 },
   default: { pos: [0, 2.2, 13.5], look: [0, 1.25, 0], shift: 0.24 },
 };
-const CUES = { about: 'Wave', skills: 'LevelUp', projects: 'GlassesPush', trophies: 'PendantGlow', contact: 'PeaceJump' };
+// What he does in each section. Activities (Juggle, PlayGame, LiftTrophy, Type) make him walk to a spot first;
+// 'Home' sends him back to the platform. The old gestures (glasses, pendant, level up) still play at random.
+const CUES = { top: 'Home', about: 'Wave', skills: 'Juggle', projects: 'PlayGame', journey: 'Home', trophies: 'LiftTrophy', cutscene: 'Home', contact: 'Type' };
 
 function CameraRig() {
   const { camera, size } = useThree();
@@ -690,7 +701,9 @@ function Scene({ onChat, pointer }) {
             {avatar.url && <AvatarRig url={avatar.url} onChat={onChat} onPointer={pointer} />}
           </group>
         </Suspense>
-        <ContactShadows position={[AVATAR_POS[0], 0.23, AVATAR_POS[2]]} opacity={0.4} scale={2.4} blur={2.2} far={1.5} />
+        <FollowActor base={[AVATAR_POS[0], 0.23, AVATAR_POS[2]]}>
+          <ContactShadows opacity={0.4} scale={2.4} blur={2.2} far={1.5} />
+        </FollowActor>
         <LevelUpFX position={AVATAR_POS} />
         <PendantFX />
       </group>

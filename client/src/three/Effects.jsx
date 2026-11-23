@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { on } from '../state.js';
-import { PENDANT_WORLD } from './AvatarRig.jsx';
+import { ACTOR, PENDANT_WORLD } from './AvatarRig.jsx';
 
 /** Golden rings climb the avatar, then a LEVEL UP badge with the newest skill. */
 export function LevelUpFX({ position = [0, 0, 0] }) {
@@ -23,8 +23,11 @@ export function LevelUpFX({ position = [0, 0, 0] }) {
     return () => clearTimeout(t);
   }, [run]);
 
+  const group = useRef();
   useFrame(() => {
     if (!run) return;
+    // follow him if he is away from the platform
+    group.current?.position.set(position[0] + ACTOR.x, position[1], position[2] + ACTOR.z);
     const t = (performance.now() - start.current) / 1000;
     rings.current.forEach((m, i) => {
       if (!m) return;
@@ -39,7 +42,7 @@ export function LevelUpFX({ position = [0, 0, 0] }) {
 
   if (!run) return null;
   return (
-    <group position={position}>
+    <group ref={group} position={position}>
       {[0, 1, 2].map((i) => (
         <mesh key={i} ref={(el) => (rings.current[i] = el)} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.55, 0.025, 12, 64]} />

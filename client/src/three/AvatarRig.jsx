@@ -5,10 +5,28 @@ import * as THREE from 'three';
 import { emit, on, prefersReducedMotion } from '../state.js';
 import { recentSkills } from '../data/portfolio.js';
 
+import ActivityProp from './ActivityProps.jsx';
+
 const RANDOM_MOVES = ['GlassesPush', 'PendantGlow', 'LevelUp'];
 
 // world position of the pendant, read by the effects
 export const PENDANT_WORLD = new THREE.Vector3(0, 1.2, 0.1);
+// where he stands now, as an offset from his home spot on the platform (read by the shadow and effects)
+export const ACTOR = { x: 0, z: 0 };
+
+// Where he walks to for each section activity (offsets from the platform; yaw 0 faces the camera). The page
+// content covers the left of the screen on wide displays, so the spots stay on the visible side. Phones use a
+// smaller range so he stays centred in the picture.
+const SPOTS = {
+  home: { x: 0, z: 0, yaw: 0 },
+  Juggle: { x: 0.35, z: 0.25, yaw: 0 },
+  PlayGame: { x: 0.75, z: 0.15, yaw: 0 },
+  LiftTrophy: { x: -0.15, z: 0.25, yaw: 0 },
+  Type: { x: -0.3, z: 0.3, yaw: 0 },
+};
+const WALK_SPEED = 0.85; // metres per second
+// when the prop disappears, as a fraction of the clip (the clips lower their hands near the end)
+const ACTIVITIES = { Juggle: 0.8, PlayGame: 0.72, LiftTrophy: 0.72, Type: 0.85 };
 const SLEEP_AFTER_MS = 30000;
 // Short label shown above his head so each move is easy to read (LevelUp has its own badge)
 const CAPTIONS = {
@@ -18,6 +36,10 @@ const CAPTIONS = {
   PeaceJump: 'Peace!',
   SitDown: 'Getting sleepy…',
   WakeUp: 'Whoa, I’m awake!',
+  Juggle: 'Juggling some blocks',
+  PlayGame: 'Playing a game',
+  LiftTrophy: 'Champion!',
+  Type: 'Typing a reply…',
 };
 // the small gestures read better a little slower
 const SPEED = { GlassesPush: 0.8, PendantGlow: 0.85 };
@@ -35,6 +57,8 @@ export default function AvatarRig({ url, onChat, onPointer }) {
   const group = useRef();
   const { scene, animations } = useGLTF(url);
   const narrow = useThree((s) => s.size.width < 820);
+  const narrowRef = useRef(narrow);
+  narrowRef.current = narrow;
 
   // Blink must only touch the eyes so it can play on top of everything else
   const clips = useMemo(
@@ -53,6 +77,9 @@ export default function AvatarRig({ url, onChat, onPointer }) {
   const [bubble, setBubble] = useState(false);
   const [zzz, setZzz] = useState(false);
   const [caption, setCaption] = useState(null);
+  const [prop, setProp] = useState(null);
+  const propTok = useRef(0);
+  const walk = useRef({ tx: 0, tz: 0, tyaw: 0, yaw: 0, token: 0, onArrive: null });
   const pendantMat = useRef(null);
   const pendantGlow = useRef(0);
   const head = useRef(null);
@@ -122,8 +149,15 @@ export default function AvatarRig({ url, onChat, onPointer }) {
 
   const doMove = (name) => {
     const s = state.current;
-    if (s.sleeping || s.busy || !actions[name]) return;
+    if (s.sleeping || s.busy || s.walking || !actions[name]) return;
     play(name);
+    if (ACTIVITIES[name]) {
+      // the prop shows once his hands are in position and goes away before they drop
+      const tk = ++propTok.current;
+      const clip = actions[name].getClip();
+      setTimeout(() => { if (propTok.current === tk && !s.walking) setProp(name); }, 350);
+      setTimeout(() => { if (propTok.current === tk) setProp(null); }, clip.duration * ACTIVITIES[name] * 1000);
+    }
     if (name === 'LevelUp') {
       const skill = recentSkills[s.skillIdx % recentSkills.length];
       s.skillIdx += 1;
@@ -137,9 +171,46 @@ export default function AvatarRig({ url, onChat, onPointer }) {
     }
   };
 
+  // Walk to the spot for a cue (or back to the platform for 'Home' and the plain gestures), then do the move.
+  // A newer cue cancels the walk in progress.
+  const cueTo = (name) => {
+    const s = state.current;
+    const w = walk.current;
+    if (s.sleeping) return;
+    const spot = SPOTS[name] || SPOTS.home;
+    const k = narrowRef.current ? 0.45 : 1;
+    w.tx = spot.x * k;
+    w.tz = spot.z * k;
+    w.tyaw = narrowRef.current ? 0 : spot.yaw;
+    const token = ++w.token;
+    propTok.current += 1;
+    setProp(null);
+    const arrive = () => {
+      if (w.token === token && name !== 'Home') doMove(name);
+    };
+    const dist = Math.hypot(w.tx - ACTOR.x, w.tz - ACTOR.z);
+    if (dist < 0.04 || prefersReducedMotion) {
+      ACTOR.x = w.tx;
+      ACTOR.z = w.tz;
+      if (prefersReducedMotion) w.yaw = w.tyaw;
+      s.walking = false;
+      arrive();
+      return;
+    }
+    s.walking = true;
+    setCaption(null);
+    play('Walk', { loop: true, fade: 0.25 });
+    w.onArrive = () => {
+      if (w.token !== token) return;
+      s.walking = false;
+      play('Idle', { loop: true, fade: 0.3 });
+      arrive();
+    };
+  };
+
   const goToSleep = () => {
     const s = state.current;
-    if (s.sleeping || s.busy) return;
+    if (s.sleeping || s.busy || s.walking) return;
     s.sleeping = true;
     play('SitDown', {
       onDone: () => {
@@ -218,7 +289,7 @@ export default function AvatarRig({ url, onChat, onPointer }) {
       if (!s.sleeping && performance.now() - s.lastActivity > SLEEP_AFTER_MS) goToSleep();
     }, 1000);
 
-    const offCue = on('avatar:cue', (name) => doMove(name));
+    const offCue = on('avatar:cue', (name) => cueTo(name));
 
     return () => {
       timers.forEach(clearTimeout);
@@ -259,6 +330,36 @@ export default function AvatarRig({ url, onChat, onPointer }) {
   useFrame((_, dt) => {
     const s = state.current;
     const r = react.current;
+
+    // walking: move toward the target spot, turning to face the way he goes, then settle facing the spot's yaw
+    const w = walk.current;
+    let wantYaw = w.tyaw;
+    if (s.walking) {
+      const dx = w.tx - ACTOR.x, dz = w.tz - ACTOR.z;
+      const d = Math.hypot(dx, dz);
+      const step = WALK_SPEED * dt;
+      if (d <= step) {
+        ACTOR.x = w.tx;
+        ACTOR.z = w.tz;
+        const done = w.onArrive;
+        w.onArrive = null;
+        done?.();
+      } else {
+        ACTOR.x += (dx / d) * step;
+        ACTOR.z += (dz / d) * step;
+        wantYaw = Math.atan2(dx, dz);
+      }
+    }
+    if (!s.sleeping) {
+      let diff = wantYaw - w.yaw;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      w.yaw += diff * (1 - Math.exp(-(s.walking ? 10 : 6) * dt));
+    }
+    if (group.current) {
+      group.current.position.set(ACTOR.x, 0, ACTOR.z);
+      group.current.rotation.y = w.yaw;
+    }
+
     const p = onPointer?.current || { x: 0, y: 0 };
     look.current.x = THREE.MathUtils.damp(look.current.x, s.sleeping ? 0 : p.x, 4, dt);
     look.current.y = THREE.MathUtils.damp(look.current.y, s.sleeping ? 0 : p.y, 4, dt);
@@ -303,7 +404,7 @@ export default function AvatarRig({ url, onChat, onPointer }) {
             wakeUp();
             return;
           }
-          if (!state.current.busy) play('PeaceJump');
+          if (!state.current.busy && !state.current.walking) play('PeaceJump');
           setBubble(true);
           setTimeout(() => setBubble(false), 4500);
         }}
@@ -315,6 +416,7 @@ export default function AvatarRig({ url, onChat, onPointer }) {
           document.body.style.cursor = '';
         }}
       />
+      {prop && <ActivityProp name={prop} actions={actions} />}
       {caption && !bubble && (
         // beside the shoulder on wide screens; centred above the head (and allowed to wrap) on phones
         <Html position={narrow ? [0, 2.4, 0] : [0.7, 1.55, 0]} center={narrow} zIndexRange={[20, 10]}>

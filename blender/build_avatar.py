@@ -15,7 +15,7 @@ The character is built from code: every mesh part is attached to a bone (rigid p
 so it animates cleanly in Three.js without weight painting.
 
 Animations (GLB clip names): Idle, Blink, Wave, GlassesPush, PendantGlow, LevelUp,
-PeaceJump, SitDown, Sleep, WakeUp, RubEyes
+PeaceJump, SitDown, Sleep, WakeUp, RubEyes, Walk, PlayGame, Juggle, LiftTrophy, Type
 """
 
 import math
@@ -1082,8 +1082,116 @@ def anim_rub_eyes():
     return dict(keys=keys, loop=False, eye_keys=True)
 
 
+def anim_walk():
+    """In-place walk cycle (the site moves him across the island). 32 frames, loops."""
+    keys = []
+    for f in range(1, 34, 4):
+        t = (f - 1) / 32
+        s = math.sin(2 * math.pi * t)
+        c = math.cos(2 * math.pi * t)
+        e = {}
+        for side, sg, cg in (("L", s, c), ("R", -s, -c)):
+            th = -30 * sg                    # thigh swings forward (negative x) then back
+            sh = 6 + 34 * max(0.0, cg)         # knee bends while the leg swings through
+            e[f"thigh.{side}"] = (th, 0, 0)
+            e[f"shin.{side}"] = (sh, 0, 0)
+            e[f"foot.{side}"] = (-(th + sh), 0, 0)  # keep the sole flat
+        e["upper_arm.L"] = (22 * s, -4, 0)      # arms swing against the legs
+        e["upper_arm.R"] = (-22 * s, 4, 0)
+        e["forearm.L"] = (-16 - 6 * max(0.0, -s), 0, 0)
+        e["forearm.R"] = (-16 - 6 * max(0.0, s), 0, 0)
+        e["hips"] = (0, 5 * s, 0)
+        e["spine"] = (4, -3 * s, 0)
+        e["chest"] = (0, -4 * s, 0)
+        e["head"] = (-3, 4 * s, 0)
+        bob = 0.016 * math.cos(4 * math.pi * t)
+        keys.append((f, make_pose(e, root=(0, 0, bob))))
+    return dict(keys=keys, loop=True, eye_keys=False)
+
+
+def anim_play_game():
+    """Holds a controller in both hands and plays: leans in, thumbs wiggle, body sways."""
+    L, R = "L", "R"
+    def hold(dz_l=0.0, dz_r=0.0, roll=0.0, thumb=0.0):
+        return make_pose({"head": (14, 0, 2 * roll), "spine": (5, 0, 0), "chest": (0, 0, 3 * roll)},
+                         ik={L: ((0.11, -0.28, 1.12 + dz_l), pole_down(L)),
+                             R: ((-0.11, -0.28, 1.12 + dz_r), pole_down(R))},
+                         fingers="fist", extra={"hand.L": q_euler(x=-30 + thumb), "hand.R": q_euler(x=-30 - thumb)})
+    keys = [(1, make_pose()), (12, hold())]
+    for i, f in enumerate(range(18, 70, 6)):
+        sw = 1 if i % 2 == 0 else -1
+        keys.append((f, hold(0.012 * sw, -0.012 * sw, roll=sw * 1.5, thumb=10 * sw)))
+    # little celebration at the end
+    keys.append((74, make_pose({"head": (-6, 0, 0), "spine": (-4, 0, 0)}, root=(0, 0, 0.05),
+                               ik={L: ((0.16, -0.22, 1.5), pole_down(L)), R: ((-0.16, -0.22, 1.5), pole_down(R))},
+                               fingers="fist")))
+    keys.append((84, make_pose({"head": (-2, 0, 0)})))
+    keys.append((96, make_pose()))
+    return dict(keys=keys, loop=False, eye_keys=False)
+
+
+def anim_juggle():
+    """Tosses blocks hand to hand in front of the chest while following them with his head."""
+    L, R = "L", "R"
+    keys = [(1, make_pose())]
+    for f in range(12, 79, 6):
+        ph = 2 * math.pi * (f - 12) / 24
+        s = math.sin(ph)
+        keys.append((f, make_pose({"head": (-8, 3 * s, 4 * s), "chest": (0, 2 * s, 0)},
+                                  crouch_deg=4 + 3 * math.cos(2 * ph),
+                                  ik={L: ((0.2, -0.3, 1.25 + 0.3 * s), pole_down(L)),
+                                      R: ((-0.2, -0.3, 1.25 - 0.3 * s), pole_down(R))},
+                                  fingers="open")))
+    keys.append((86, make_pose({"head": (-3, 0, 0)})))
+    keys.append((98, make_pose()))
+    return dict(keys=keys, loop=False, eye_keys=False)
+
+
+def anim_lift_trophy():
+    """Crouches, then raises a trophy overhead with both hands and shakes it in triumph."""
+    L, R = "L", "R"
+    def up(z=2.02, roll=0.0, dx=0.0):
+        return make_pose({"head": (-12, 0, 2 * roll), "spine": (-6, 0, 0), "chest": (0, 0, 4 * roll)},
+                         root=(0, 0, 0.1),
+                         ik={L: ((0.15 + dx, -0.14, z), pole_up(L)), R: ((-0.15 + dx, -0.14, z), pole_up(R))},
+                         fingers="fist", extra={"thigh.L": q_euler(x=-6), "shin.L": q_euler(x=12)})
+    keys = [(1, make_pose())]
+    keys.append((10, make_pose({"spine": (10, 0, 0), "head": (6, 0, 0)}, crouch_deg=22,
+                               ik={L: ((0.2, -0.2, 0.95), pole_down(L)), R: ((-0.2, -0.2, 0.95), pole_down(R))},
+                               fingers="fist")))
+    keys.append((22, up()))
+    for i, f in enumerate(range(30, 62, 6)):
+        sw = 1 if i % 2 == 0 else -1
+        keys.append((f, up(2.02 + 0.02 * sw, roll=sw, dx=0.012 * sw)))
+    keys.append((68, up(2.0)))
+    keys.append((80, make_pose({"head": (2, 0, 0)}, ik={L: ((0.16, -0.2, 1.3), pole_down(L)),
+                                                         R: ((-0.16, -0.2, 1.3), pole_down(R))}, fingers="fist")))
+    keys.append((94, make_pose()))
+    return dict(keys=keys, loop=False, eye_keys=False)
+
+
+def anim_type():
+    """Types on a laptop: head tipped down, hands out front tapping alternately."""
+    L, R = "L", "R"
+    def at(zl, zr, hl=-20, hr=-20):
+        return make_pose({"head": (14, 0, 0), "spine": (5, 0, 0)},
+                         ik={L: ((0.1, -0.34, zl), pole_down(L)), R: ((-0.1, -0.34, zr), pole_down(R))},
+                         fingers="fist", extra={"hand.L": q_euler(x=hl), "hand.R": q_euler(x=hr)})
+    keys = [(1, make_pose()), (12, at(0.99, 0.99))]
+    for i, f in enumerate(range(18, 80, 4)):
+        keys.append((f, at(0.99 - 0.03 * (i % 2), 0.99 - 0.03 * ((i + 1) % 2), -20 - 10 * (i % 2), -20 - 10 * ((i + 1) % 2))))
+    keys.append((86, make_pose({"head": (6, 0, 0), "spine": (2, 0, 0)})))
+    keys.append((98, make_pose()))
+    return dict(keys=keys, loop=False, eye_keys=False)
+
+
 def build_actions():
     return {
+        "Walk": anim_walk(),
+        "PlayGame": anim_play_game(),
+        "Juggle": anim_juggle(),
+        "LiftTrophy": anim_lift_trophy(),
+        "Type": anim_type(),
         "Idle": anim_idle(),
         "Blink": anim_blink(),
         "Wave": anim_wave(),
