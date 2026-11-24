@@ -6,6 +6,16 @@ The whole site plays out on one sunlit floating island built in Three.js. The 3D
 
 Avatar behaviour: idle breathing and random blinks; every 9–15 seconds a random move (glasses push, pendant power-up, level up showing the newest skill); his torso turns toward the page content, leans with scroll speed and glances at project cards you hover; click him for a peace-sign jump and a speech bubble that opens the chat; leave the page alone for 30 seconds and he sits down and falls asleep, then wakes up startled when you move.
 
+## Live demo and links
+
+| | |
+|---|---|
+| Live website | https://ebad-portfolio-47pe.vercel.app |
+| Backend API (Render) | https://ebad-portfolio.onrender.com |
+| GitHub repository | https://github.com/cluchrai/ebad-portfolio |
+
+The backend runs on Render's free tier, so the first chatbot question or contact message after a quiet spell can take up to a minute while it wakes up.
+
 ## Tech stack
 
 | Part | Tools |
@@ -150,16 +160,16 @@ A 60-second game-style tour of the portfolio, in the same look as the site: boot
 
 ## Screenshots
 
-All taken from the built site (`docs/screenshots/`):
+All taken from the live site (`docs/screenshots/`):
 
 | File | Shows |
 |---|---|
 | `01-home-day.jpg`, `02-home-night.jpg` | Module 1: home page in day and night mode |
 | `03-about-character-sheet.jpg` | Module 1: About me |
 | `04-skills-inventory.jpg` | Module 1: skills and technologies |
-| `05-projects-gallery.jpg` | Module 1: projects gallery with filters and search |
+| `05-projects-gallery.jpg` | Module 1: Quest log with project images, filters and search |
 | `06-education-experience.jpg`, `07-trophies.jpg` | Module 1: education, experience and achievements |
-| `08-video-section.jpg` | Module 3: the promo video section (video still to be added) |
+| `08-video-section.jpg` | Module 3: the promo video embedded in the Cutscene section |
 | `09-contact-form.jpg` | Module 5: contact form |
 | `10-chatbot.jpg` | Module 4: RAG chatbot answering with source citations |
 | `11-mobile-home.jpg`, `12-mobile-projects.jpg` | Module 1: responsive mobile layout |
