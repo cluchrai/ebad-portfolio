@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { ownerEmail, visitorEmail } from './emailTemplates.js';
 
 // Two ways to send, chosen by which keys are set:
 // - RESEND_API_KEY: Resend's HTTPS API. Needed on hosts that block SMTP ports (Render's free tier).
@@ -26,9 +27,6 @@ function getTransporter() {
   return transporter;
 }
 
-const escapeHtml = (s) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
 async function sendWithResend({ from, to, replyTo, subject, text, html }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -42,29 +40,26 @@ async function sendWithResend({ from, to, replyTo, subject, text, html }) {
   }
 }
 
+const useResend = () => Boolean(process.env.RESEND_API_KEY);
+const deliver = (mail) => (useResend() ? sendWithResend(mail) : getTransporter().sendMail(mail));
+
 export async function sendContactEmail({ name, email, subject, message }) {
-  const safe = { name: escapeHtml(name), email: escapeHtml(email), subject: escapeHtml(subject), message: escapeHtml(message) };
-  const useResend = Boolean(process.env.RESEND_API_KEY);
+  const owner = ownerEmail({ name, email, subject, message });
+  const from = useResend()
+    ? // Resend's shared sender works without a domain, but only delivers to the address you signed up with
+      process.env.RESEND_FROM || 'Portfolio contact form <onboarding@resend.dev>'
+    : `"Portfolio contact form" <${process.env.SMTP_USER}>`;
+  const to = process.env.CONTACT_TO || process.env.SMTP_USER;
 
-  const mail = {
-    // Resend's shared sender works without a domain, but only delivers to the address you signed up with
-    from: useResend
-      ? process.env.RESEND_FROM || 'Portfolio contact form <onboarding@resend.dev>'
-      : `"Portfolio contact form" <${process.env.SMTP_USER}>`,
-    to: process.env.CONTACT_TO || process.env.SMTP_USER,
-    replyTo: `"${name.replace(/"/g, '')}" <${email}>`,
-    subject: `[Portfolio] ${subject}`,
-    text: `From: ${name} <${email}>\nSubject: ${subject}\n\n${message}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px">
-        <h2 style="margin:0 0 12px">New message from your portfolio</h2>
-        <p><strong>From:</strong> ${safe.name} &lt;${safe.email}&gt;</p>
-        <p><strong>Subject:</strong> ${safe.subject}</p>
-        <hr />
-        <p style="white-space:pre-wrap">${safe.message}</p>
-      </div>`,
-  };
+  await deliver({ from, to, replyTo: `"${name.replace(/"/g, '')}" <${email}>`, ...owner });
 
-  if (useResend) return sendWithResend(mail);
-  await getTransporter().sendMail(mail);
+  // Optional receipt for the visitor. Off by default: Resend's shared sender cannot deliver to other people,
+  // so turn it on only with a verified domain (RESEND_FROM) or SMTP. A failure here never fails the request.
+  if (process.env.SEND_CONFIRMATION === 'true') {
+    try {
+      await deliver({ from, to: email, replyTo: to, ...visitorEmail({ name, subject, message }) });
+    } catch (err) {
+      console.error('Confirmation email failed:', err.message);
+    }
+  }
 }
