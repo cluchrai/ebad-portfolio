@@ -13,6 +13,7 @@ Avatar behaviour: idle breathing and random blinks; every 9–15 seconds a rando
 | Live website | https://ebad-portfolio-47pe.vercel.app |
 | Backend API (Render) | https://ebad-portfolio.onrender.com |
 | GitHub repository | https://github.com/cluchrai/ebad-portfolio |
+| Project report (PDF) | [docs/Ebad_World_Project_Report.pdf](docs/Ebad_World_Project_Report.pdf) |
 
 The backend runs on Render's free tier, so the first chatbot question or contact message after a quiet spell can take up to a minute while it wakes up.
 
@@ -101,7 +102,7 @@ cd client && npm run dev     # site on http://localhost:5173
 1. **Collect:** facts from the CV are written as markdown files in `server/knowledge/` (profile, skills, projects, experience, education, achievements).
 2. **Chunk:** `chunker.js` splits each file by `##` heading, and splits long sections by paragraph (max ~900 characters). Each chunk is prefixed with its file title and heading so it carries its own context, and stores which portfolio section it belongs to.
 3. **Embed and store:** `npm run ingest` uploads the chunks to Upstash Vector. The index's built-in embedding model turns each chunk into a vector.
-4. **Retrieve:** for each question, `/api/chat` asks Upstash for the 5 nearest chunks (cosine similarity) and drops weak matches below a score of 0.55.
+4. **Retrieve:** for each question, `/api/chat` asks Upstash for the 8 nearest chunks (cosine similarity) and drops weak matches below a score of 0.55.
 5. **Generate:** the matching chunks are numbered and sent to Gemini with a system prompt that only allows facts from those passages, and tells it to say "I don't have that information" otherwise. It replies in the visitor's language (English, Urdu or Roman Urdu).
 6. **Cite:** Gemini lists the passage numbers it used. The server turns them into source chips that scroll the page to the matching section.
 
