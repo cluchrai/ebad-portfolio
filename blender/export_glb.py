@@ -55,6 +55,43 @@ def vertex_normals(V, faces):
     return N / l
 
 
+def split_normals(V, faces, angle=None):
+    """Smooth normals that stay hard where faces meet at more than `angle` degrees (flat tube caps).
+    Plain averaging lets the caps bend the normals at every joint, which shows as dark bands.
+    Returns new (V, N, faces) with vertices duplicated only where a hard edge needs it."""
+    cos_t = math.cos(math.radians(angle if angle is not None else A.SMOOTH_ANGLE))
+    fn = []
+    for f in faces:  # area-weighted face normals
+        n = np.zeros(3)
+        for t in range(1, len(f) - 1):
+            n += np.cross(V[f[t]] - V[f[0]], V[f[t + 1]] - V[f[0]])
+        fn.append(n)
+    fn = np.array(fn)
+    fu = fn / np.maximum(np.linalg.norm(fn, axis=1, keepdims=True), 1e-12)
+    key = [tuple(k) for k in np.round(V / 1e-5).astype(np.int64)]
+    around = {}  # position -> faces touching it
+    for fi, f in enumerate(faces):
+        for v in f:
+            around.setdefault(key[v], []).append(fi)
+    out_v, out_n, index, new_faces = [], [], {}, []
+    for fi, f in enumerate(faces):
+        nf = []
+        for v in f:
+            n = np.zeros(3)
+            for fj in around[key[v]]:
+                if fu[fj] @ fu[fi] >= cos_t:
+                    n += fn[fj]
+            ln = np.linalg.norm(n)
+            n = n / ln if ln > 1e-12 else fu[fi]
+            k = (v, tuple(np.round(n, 3)))
+            if k not in index:
+                index[k] = len(out_v)
+                out_v.append(V[v]); out_n.append(n)
+            nf.append(index[k])
+        new_faces.append(nf)
+    return np.array(out_v), np.array(out_n), new_faces
+
+
 def srgb_to_lin(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
@@ -121,16 +158,15 @@ def main(out):
     # ---------- meshes ----------
     meshes = []
     for p in parts:
-        V = np.array(p.verts, float)
+        V, N, faces = split_normals(np.array(p.verts, float), p.faces)
         head = np.array(A.BONE[p.bone][1])
-        N = vertex_normals(V, p.faces)
         L = V - head
         P_gl = np.stack([L[:, 0], L[:, 2], -L[:, 1]], 1).astype(np.float32)
         N_gl = np.stack([N[:, 0], N[:, 2], -N[:, 1]], 1).astype(np.float32)
         pos_acc = g.add(P_gl, 5126, "VEC3", 34962, minmax=True)
         nrm_acc = g.add(N_gl, 5126, "VEC3", 34962)
         by_mat = {}
-        for f, mi in zip(p.faces, p.mats):
+        for f, mi in zip(faces, p.mats):
             tris = by_mat.setdefault(mi, [])
             for t in range(1, len(f) - 1):
                 tris.extend([f[0], f[t], f[t + 1]])

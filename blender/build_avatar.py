@@ -190,6 +190,7 @@ MATERIALS = {
     "Button":      dict(color="#8C6B50", rough=0.4),
     "Trousers":    dict(color="#E7DDC8", rough=0.9),
     "Crease":      dict(color="#CDBFA4", rough=0.9),
+    "Belt":        dict(color="#2B211C", rough=0.5),
     "Shoe":        dict(color="#F4F2ED", rough=0.6),
     "Sole":        dict(color="#D5D0C6", rough=0.7),
     "Silver":      dict(color="#CDD2DA", rough=0.25, metal=0.9),
@@ -229,6 +230,7 @@ class Part:
 
 
 PARTS = {}
+SMOOTH_ANGLE = 50  # degrees: faces meeting at a sharper angle than this get a hard edge (tube caps)
 
 def part(bone, group="Body"):
     key = (bone, group)
@@ -624,28 +626,30 @@ def build_glasses():
 
 
 def build_torso():
-    # trousers top (hips)
+    # trousers top (hips): a short waistband under the belt; the legs start just inside it
     hp = part("hips")
-    rings = [(0.80, 0.150, 0.108), (0.88, 0.156, 0.11), (0.96, 0.152, 0.106), (1.0, 0.148, 0.104)]
-    tube(hp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Trousers", seg=20)
-    # untucked shirt hem over the trousers
-    rings = [(0.855, 0.168, 0.12), (0.87, 0.172, 0.124), (0.95, 0.168, 0.12), (1.08, 0.155, 0.107)]
-    tube(hp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Shirt", seg=24, caps=False)
-    tube(hp, [(0, 0, 0.856), (0, 0, 0.87)], [(0.164, 0.116), (0.168, 0.12)], "ShirtDark", seg=24, caps=False)
-    box(hp, (0, -0.124, 0.93), (0.006, 0.006, 0.09), "ShirtDark")  # placket bottom
+    rings = [(0.985, 0.166, 0.097), (1.0, 0.166, 0.1), (1.035, 0.162, 0.105)]  # almost all under the belt
+    tube(hp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Trousers", seg=48)
+    # tucked-in shirt: it starts inside the waistband and blouses very slightly above the belt
+    rings = [(1.0, 0.15, 0.096), (1.045, 0.161, 0.113), (1.08, 0.156, 0.108)]
+    tube(hp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Shirt", seg=28, caps=False)
+    # belt with a buckle
+    tube(hp, [(0, 0, 0.997), (0, 0, 1.032)], [(0.171, 0.112), (0.168, 0.114)], "Belt", seg=28, caps=False)
+    box(hp, (0, -0.116, 1.0145), (0.046, 0.008, 0.032), "Gold")
+    box(hp, (0, -0.1195, 1.0145), (0.03, 0.004, 0.018), "Belt")
 
     sp = part("spine")
     rings = [(1.04, 0.158, 0.11), (1.15, 0.158, 0.108), (1.27, 0.164, 0.108)]
     tube(sp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Shirt", seg=22)
 
     cp = part("chest")
-    rings = [(1.24, 0.168, 0.112), (1.33, 0.178, 0.112), (1.40, 0.185, 0.104), (1.44, 0.15, 0.085),
+    rings = [(1.24, 0.159, 0.105), (1.29, 0.17, 0.111), (1.33, 0.178, 0.112), (1.40, 0.185, 0.104), (1.44, 0.15, 0.085),
              (1.465, 0.075, 0.062)]
     tube(cp, [(0, 0, r[0]) for r in rings], [(r[1], r[2]) for r in rings], "Shirt", seg=22)
     # placket + buttons
     box(cp, (0, -0.1135, 1.30), (0.02, 0.006, 0.12), "ShirtDark")
     box(sp, (0, -0.110, 1.14), (0.02, 0.006, 0.2), "ShirtDark")
-    for z in (0.96, 1.06, 1.16, 1.26):
+    for z in (1.07, 1.16, 1.26):
         ellipsoid(part("hips" if z < 1.05 else ("spine" if z < 1.25 else "chest")),
                   (0, -0.118 if z > 1.05 else -0.128, z), (0.0055, 0.003, 0.0055), "Button", u=10, v=5)
     # open collar: skin V, then the two collar flaps
@@ -751,9 +755,12 @@ def build_legs():
         _, hip, knee, _ = BONE_SRC[th]
         _, _, ankle, _ = BONE_SRC[sh]
         tp = part(th)
-        tube(tp, [v_add(hip, (0, 0, 0.06)), v_lerp(hip, knee, 0.5), knee],
-             [(0.083, 0.085), (0.078, 0.08), (0.074, 0.077)], "Trousers", seg=16)
-        ellipsoid(tp, knee, (0.07, 0.073, 0.05), "Trousers", u=14, v=8)
+        # the top of each leg leans in so the two legs meet under the belt (no gap, no extra crotch piece);
+        # below that they part in a clean V like real trousers
+        tube(tp, [v_add(hip, (-0.032 * sx, 0, 0.05)), v_add(v_lerp(hip, knee, 0.2), (-0.01 * sx, 0, 0)),
+                  v_lerp(hip, knee, 0.5), knee],
+             [(0.08, 0.08), (0.082, 0.084), (0.078, 0.08), (0.074, 0.077)], "Trousers", seg=32)
+        ellipsoid(tp, knee, (0.0742, 0.0772, 0.07), "Trousers", u=16, v=10)  # fills the joint, flush with the legs
         # front pleat crease
         tube(tp, [v_add(hip, (0.0, -0.084, 0.0)), v_add(knee, (0, -0.078, 0))], [(0.0025, 0.0016)] * 2,
              "Crease", seg=5)
@@ -1299,6 +1306,13 @@ def run_in_blender():
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         bm.to_mesh(me)
         bm.free()
+        # smooth the curved surfaces but keep flat tube caps sharp, otherwise the caps bend the
+        # normals at every joint and the body shows dark horizontal bands
+        try:
+            me.set_sharp_from_angle(angle=math.radians(SMOOTH_ANGLE))
+        except AttributeError:
+            me.use_auto_smooth = True
+            me.auto_smooth_angle = math.radians(SMOOTH_ANGLE)
         ob = bpy.data.objects.new(p.name, me)
         root_coll.objects.link(ob)
         bone = arm_data.bones[p.bone]

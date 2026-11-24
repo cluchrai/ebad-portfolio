@@ -59,7 +59,7 @@ export const projects = [
     party: 'Team of 3',
     reward: '1st place, GameCon',
     tags: ['Unity 3D', 'Local co-op'],
-    image: null,
+    image: '/projects/two-lights.jpg',
     links: [],
   },
   {
@@ -74,7 +74,7 @@ export const projects = [
     party: 'Team FYDP',
     reward: 'Best FYDP, Techfest 2026',
     tags: ['AR', '3D models'],
-    image: null,
+    image: '/projects/taleem360.jpg',
     links: [],
   },
   {
@@ -88,7 +88,7 @@ export const projects = [
     role: 'Solo developer: designed, built and shipped it end to end',
     party: 'Solo',
     tags: ['Next.js', 'Supabase', 'Multi-tenant'],
-    image: null,
+    image: '/projects/rfq-saas.jpg',
     links: [],
   },
   {
@@ -100,7 +100,7 @@ export const projects = [
       'Backend for a Ludo mobile game, built in Node.js with PostgreSQL and connected to the Unity game client.',
     role: 'Backend development and Unity-to-Node.js integration',
     tags: ['Node.js', 'PostgreSQL', 'Unity'],
-    image: null,
+    image: '/projects/ludo-backend.jpg',
     links: [],
   },
   {
@@ -115,7 +115,7 @@ export const projects = [
     rewardLabel: 'Showcase',
     reward: 'GameCon 2026, NED University',
     tags: ['Unreal Engine', 'Survival horror'],
-    image: null,
+    image: '/projects/tiny-village.jpg',
     links: [],
   },
   {
@@ -128,7 +128,7 @@ export const projects = [
     role: 'Full ocean exterior environment design and implementation',
     party: 'Team of 4',
     tags: ['Meta Quest 3', 'Unity VR'],
-    image: null,
+    image: '/projects/underwater-vr.jpg',
     links: [],
   },
 ];
@@ -187,8 +187,8 @@ export const courses = [
   { title: 'Pre-production for Animation & Design', by: 'CEGA, Centre of Excellence in Gaming & Animation' },
 ];
 
-// Set src to '/media/promo.mp4' once the After Effects export is ready
+// Promo video, built in After Effects from video/build_promo.jsx (project: video/promo.aep)
 export const showreel = {
-  src: null,
-  poster: null,
+  src: '/media/promo.mp4',
+  poster: '/media/promo-poster.jpg',
 };

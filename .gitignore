@@ -6,3 +6,9 @@ dist/
 .DS_Store
 *.blend1
 .claude/
+
+# promo video render output (frames, previews)
+video/out/
+video/build_log.txt
+video/Adobe After Effects Auto-Save/
+video/*.aep Logs/
